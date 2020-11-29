@@ -1,7 +1,8 @@
 'use string'
 
-// const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const User = require('../models/user');
+const jwt = require('../services/jwt');
 
 const pruebas = (req, res) => {
     res.status(200).send({
@@ -52,6 +53,8 @@ const saveUser = (req, res) => {
             res.status(200).send({user: userStored});
         })
     })
+
+    
     
     // if( params.password ) {
     //     // Encriptar contraseña
@@ -78,7 +81,40 @@ const saveUser = (req, res) => {
     // }
 }
 
+const loginUser = (req, res)=> {
+    const params = req.body;
+
+    const email = params.email.toLowerCase;
+    const password = params.password;
+
+    User.findOne({ email }, (err, user) => {
+        if ( err ) {
+            res.status(500).send({ message: 'Error en la petición'});
+            return;
+        }
+        if ( !user ) {
+            res.status(404).send({ message: 'El usuario no existe'});
+            return;
+        }
+        bcrypt.compare(password, user.password, (err, check)=>{
+            if (!check) {
+                res.status(500).send({ message: 'El usuario no pudo loguearse'});
+                return;
+            }
+            if (params.getHash) {
+                res.status(200).send({
+                    token: jwt.createToken(user)
+                })
+            } else {
+                res.status(200).send(user)
+            }
+        })
+
+    })    
+}
+
 module.exports = {
     pruebas,
     saveUser,
+    loginUser,
 }
